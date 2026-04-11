@@ -13,7 +13,7 @@ from difflib import SequenceMatcher
 from renderarxiv.models import Paper
 
 # arXiv API endpoint
-ARXIV_API = "http://export.arxiv.org/api/query"
+ARXIV_API = "https://export.arxiv.org/api/query"
 
 # Semantic Scholar API (for citation counts)
 SEMANTIC_SCHOLAR_API = "https://api.semanticscholar.org/graph/v1/paper"
@@ -57,7 +57,12 @@ def search_arxiv(
         print(f"   Filtering by category: {category}")
     
     try:
-        response = requests.get(ARXIV_API, params=params, timeout=30)
+        response = requests.get(
+            ARXIV_API, 
+            params=params, 
+            headers={"User-Agent": "renderarxiv/0.1.0 (https://github.com/peterdunson/renderarxiv)"}, 
+            timeout=30
+        )
         response.raise_for_status()
         
         # Parse the Atom feed
