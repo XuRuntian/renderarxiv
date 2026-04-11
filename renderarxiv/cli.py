@@ -433,6 +433,11 @@ Examples:
         action="store_true", 
         help="Don't open HTML in browser after generation"
     )
+    ap.add_argument(
+        "--days", 
+        type=int, 
+        help="Only get the papers in the last few days (for example, 30 means within one month)."
+    )
     args = ap.parse_args()
 
     if args.out is None:
@@ -446,6 +451,7 @@ Examples:
         max_results=args.max_results * 2,  # Fetch extra for better filtering
         sort_by=args.sort_by,
         category=args.category,
+        days_limit=args.days,
     )
     
     if not papers:

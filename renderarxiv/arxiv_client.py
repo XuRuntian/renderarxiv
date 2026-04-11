@@ -9,6 +9,7 @@ import math
 from typing import List, Optional
 from datetime import datetime
 from difflib import SequenceMatcher
+from datetime import datetime, timedelta
 
 from renderarxiv.models import Paper
 
@@ -25,6 +26,7 @@ def search_arxiv(
     sort_by: str = "relevance",
     sort_order: str = "descending",
     category: Optional[str] = None,
+    days_limit: Optional[int] = None,
 ) -> List[Paper]:
     """
     Search arXiv using the official API.
@@ -43,7 +45,14 @@ def search_arxiv(
     search_query = query
     if category:
         search_query = f"cat:{category} AND {query}"
-    
+
+    if days_limit:
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=days_limit)
+
+        date_filter = f"submittedDate:[{start_date.strftime('%Y%m%d%H%M')} TO {end_date.strftime('%Y%m%d%H%M')}]"
+        search_query = f"({search_query}) AND {date_filter}"
+
     params = {
         "search_query": search_query,
         "start": 0,
