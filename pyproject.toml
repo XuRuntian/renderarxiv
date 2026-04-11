@@ -32,12 +32,17 @@ dependencies = [
     "python-dotenv>=1.0.1",
     "pydantic>=2.9.2",
     "pygments>=2.19.0",
+    "arxiv>=2.4.1",
 ]
 
 [project.optional-dependencies]
 semantic = [
     "sentence-transformers>=2.2.2",
 ]
+
+[[tool.uv.index]]
+url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"
+default = true
 
 [project.scripts]
 renderarxiv = "renderarxiv.cli:main"
