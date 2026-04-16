@@ -11,7 +11,7 @@ No more hallucinated papers — everything is real, straight from arXiv.
 ## 📥 Install
 
 ```bash
-pip install git+https://github.com/peterdunson/renderarxiv.git
+pip install git+https://github.com/XuRuntian/renderarxiv.git
 ```
 
 That's it!
@@ -36,7 +36,10 @@ Opens a beautiful HTML page in your browser with:
 ```bash
 renderarxiv "quantum computing" --max-results 15
 ```
-
+**Filter by time**
+```
+renderarxiv "machine learning" --days 30  # Only papers from the last 30 days
+```
 **Ranking modes:**
 ```bash
 renderarxiv "deep learning" --mode recent      # Newest papers
@@ -75,6 +78,9 @@ renderarxiv "robot manipulation" --category cs.RO --max-results 20
 
 # Deep semantic search
 renderarxiv "few-shot learning" --mode semantic
+
+# Get the latest Computer Vision papers from the past 7 days
+renderarxiv "object detection" --category cs.CV --days 7 --mode recent
 ```
 
 ---
