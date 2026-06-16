@@ -14,6 +14,7 @@ except ImportError:  # pragma: no cover - python-dotenv is a declared dependency
     load_dotenv = None
 
 from renderpapers.models import Paper, get_category_name
+from renderpapers.query import StructuredQuery, compile_semantic_query, filter_structured_results
 from renderpapers.sources.base import PaperSearchError
 
 
@@ -184,8 +185,10 @@ class SemanticScholarSource:
         retry_on_rate_limit: bool = False,
         rate_limit_retries: int = 1,
         retry_wait_seconds: float = 30,
+        structured_query: StructuredQuery | None = None,
     ) -> List[Paper]:
-        request_query = _semantic_query(query, category)
+        search_text = compile_semantic_query(structured_query) if structured_query else query
+        request_query = _semantic_query(search_text, category)
         payload = {
             "query": request_query,
             "max_results": max_results,
@@ -194,6 +197,12 @@ class SemanticScholarSource:
             "category": category,
             "venues": venues,
             "days_limit": days_limit,
+            "structured_query": {
+                "base": structured_query.base,
+                "all": list(structured_query.all_terms),
+                "any": list(structured_query.any_terms),
+                "not": list(structured_query.not_terms),
+            } if structured_query else None,
         }
         cache_file = _cache_path("semantic-scholar-search", payload)
         if use_cache:
@@ -225,6 +234,8 @@ class SemanticScholarSource:
                 data = response.json()
                 papers = [_paper_from_semantic(item) for item in data.get("data", [])]
                 papers = _filter_days(papers, days_limit)
+                if structured_query:
+                    papers = filter_structured_results(papers, structured_query)
                 if use_cache:
                     _write_papers_cache(cache_file, papers)
                 print(f"✓ Successfully retrieved {len(papers)} papers")

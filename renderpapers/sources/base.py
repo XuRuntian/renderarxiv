@@ -1,6 +1,11 @@
-from typing import Protocol, Optional, List
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Protocol, Optional, List
 
 from renderpapers.models import Paper
+
+if TYPE_CHECKING:
+    from renderpapers.query import StructuredQuery
 
 
 class PaperSearchError(RuntimeError):
@@ -24,6 +29,7 @@ class PaperSource(Protocol):
         retry_on_rate_limit: bool = False,
         rate_limit_retries: int = 1,
         retry_wait_seconds: float = 30,
+        structured_query: StructuredQuery | None = None,
     ) -> List[Paper]:
         ...
 

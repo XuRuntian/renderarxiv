@@ -14,6 +14,7 @@ from urllib.parse import urlparse
 
 # Import Paper model from models
 from renderpapers.models import Paper
+from renderpapers.query import StructuredQuery, compile_arxiv_query
 
 # Semantic Scholar API (for fetching citation counts)
 SEMANTIC_SCHOLAR_API = "https://api.semanticscholar.org/graph/v1/paper"
@@ -242,15 +243,16 @@ def search_arxiv(
     retry_on_rate_limit: bool = False,
     rate_limit_retries: int = 1,
     retry_wait_seconds: float = 30,
+    structured_query: StructuredQuery | None = None,
 ) -> List[Paper]:
     """
     Search arXiv using the official 'arxiv' library.
     """
     
     # 1. Build the search query string
-    search_query = query
+    search_query = compile_arxiv_query(structured_query) if structured_query else query
     if category:
-        search_query = f"cat:{category} AND ({query})"
+        search_query = f"cat:{category} AND ({search_query})"
 
     if days_limit:
         end_date = datetime.now()

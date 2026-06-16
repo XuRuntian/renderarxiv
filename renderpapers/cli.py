@@ -22,6 +22,7 @@ from renderpapers.arxiv_client import (
 )
 from renderpapers.search import get_source
 from renderpapers.sources.base import PaperSearchError
+from renderpapers.query import QueryError, StructuredQuery, compile_semantic_query
 from renderpapers.models import (
     Paper,
     format_results_for_llm,
@@ -408,10 +409,35 @@ Examples:
   renderpapers "quantum computing" --mode recent --max-results 15
   renderpapers "deep learning" --source arxiv --category cs.LG --mode relevant
   renderpapers "neural networks" --source semantic-scholar --mode semantic
+  renderpapers --all robot manipulation --any grasping folding --not simulation
   renderpapers "robot manipulation" --venue ICRA,IROS --days 365
         """
     )
-    ap.add_argument("query", help="Search query")
+    ap.add_argument("query", nargs="?", help="Search query")
+    ap.add_argument(
+        "--all",
+        dest="all_terms",
+        nargs="+",
+        action="append",
+        metavar="TERM",
+        help="Require all terms or quoted phrases to appear in the result metadata"
+    )
+    ap.add_argument(
+        "--any",
+        dest="any_terms",
+        nargs="+",
+        action="append",
+        metavar="TERM",
+        help="Require at least one of these terms or quoted phrases to appear in the result metadata"
+    )
+    ap.add_argument(
+        "--not",
+        dest="not_terms",
+        nargs="+",
+        action="append",
+        metavar="TERM",
+        help="Exclude results whose metadata contains any of these terms or quoted phrases"
+    )
     ap.add_argument(
         "--source",
         choices=["semantic-scholar", "semantic", "s2", "arxiv"],
@@ -494,6 +520,20 @@ Examples:
     )
     args = ap.parse_args()
 
+    structured_query = StructuredQuery.from_cli(
+        args.query,
+        all_terms=args.all_terms,
+        any_terms=args.any_terms,
+        not_terms=args.not_terms,
+    )
+    try:
+        structured_query.require_searchable()
+    except QueryError as error:
+        ap.error(str(error))
+
+    display_query = structured_query.display()
+    source_query = compile_semantic_query(structured_query)
+    active_structured_query = structured_query if structured_query.has_structured_terms else None
     venues = [
         venue.strip()
         for value in args.venue
@@ -502,10 +542,10 @@ Examples:
     ]
 
     if args.out is None:
-        args.out = str(derive_temp_output_path(args.query))
+        args.out = str(derive_temp_output_path(display_query))
 
     use_cache = not args.no_cache
-    arxiv_id = extract_arxiv_id(args.query)
+    arxiv_id = extract_arxiv_id(args.query) if args.query and not structured_query.has_structured_terms else None
     source = get_source(args.source)
     
     try:
@@ -526,10 +566,10 @@ Examples:
             )
             papers = [paper] if paper else []
         else:
-            print(f"🔎 Searching {source.name} for: {args.query}", file=sys.stderr)
+            print(f"🔎 Searching {source.name} for: {display_query}", file=sys.stderr)
             papers = source.search(
-                query=args.query,
-                max_results=args.max_results * 2,  # Fetch extra for better filtering
+                query=source_query,
+                max_results=args.max_results * (5 if structured_query.has_structured_terms else 2),  # Fetch extra for filtering
                 sort_by=args.sort_by,
                 category=args.category,
                 venues=venues or None,
@@ -539,6 +579,7 @@ Examples:
                 retry_on_rate_limit=args.retry_on_rate_limit,
                 rate_limit_retries=args.rate_limit_retries,
                 retry_wait_seconds=args.retry_wait,
+                structured_query=active_structured_query,
             )
     except (ArxivSearchError, PaperSearchError) as e:
         print(f"❌ Search failed: {e}", file=sys.stderr)
@@ -555,9 +596,9 @@ Examples:
     if arxiv_id:
         ranked = papers[:args.max_results]
     elif args.mode == "semantic":
-        ranked = semantic_rank_papers(args.query, papers, max_results=args.max_results)
+        ranked = semantic_rank_papers(source_query, papers, max_results=args.max_results)
     else:
-        ranked = rank_papers(args.query, papers, mode=args.mode, max_results=args.max_results)
+        ranked = rank_papers(source_query, papers, mode=args.mode, max_results=args.max_results)
     
     if arxiv_id:
         print(f"✓ Prepared {len(ranked)} paper from arXiv ID", file=sys.stderr)
@@ -565,7 +606,7 @@ Examples:
         print(f"✓ Filtered to {len(ranked)} papers (mode={args.mode})", file=sys.stderr)
 
     # Generate HTML
-    html_out = build_html(args.query, ranked)
+    html_out = build_html(display_query, ranked)
 
     out_path = pathlib.Path(args.out)
     out_path.write_text(html_out, encoding="utf-8")

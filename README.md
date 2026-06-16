@@ -45,6 +45,14 @@ renderpapers "diffusion policy" --source semantic-scholar
 renderpapers "diffusion policy" --source arxiv
 ```
 
+**Structured keyword logic:**
+```bash
+renderpapers --all robot manipulation --any grasping folding --not simulation
+renderpapers "world model" --all robotics --not survey
+renderpapers --source arxiv --all "diffusion policy" robot --any manipulation locomotion
+```
+`--all` requires every term, `--any` requires at least one term, and `--not` excludes matching results. arXiv compiles these into arXiv boolean syntax; Semantic Scholar uses a broad remote query and then filters title, abstract, authors, venue, TLDR, and categories locally.
+
 **Get more/fewer results:**
 ```bash
 renderpapers "quantum computing" --max-results 15

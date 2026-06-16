@@ -2,6 +2,7 @@ from typing import Optional, List
 
 from renderpapers.arxiv_client import fetch_arxiv_ids, search_arxiv
 from renderpapers.models import Paper
+from renderpapers.query import StructuredQuery
 from renderpapers.sources.base import PaperSearchError
 
 
@@ -22,6 +23,7 @@ class ArxivSource:
         retry_on_rate_limit: bool = False,
         rate_limit_retries: int = 1,
         retry_wait_seconds: float = 30,
+        structured_query: StructuredQuery | None = None,
     ) -> List[Paper]:
         if venues:
             raise PaperSearchError(
@@ -39,6 +41,7 @@ class ArxivSource:
             retry_on_rate_limit=retry_on_rate_limit,
             rate_limit_retries=rate_limit_retries,
             retry_wait_seconds=retry_wait_seconds,
+            structured_query=structured_query,
         )
 
     def fetch_one(
